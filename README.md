@@ -45,7 +45,7 @@ If you have v2.2 installed, use the automatic migrator:
 
 ```bash
 # Download the migrator
-wget https://raw.githubusercontent.com/dualshock-tools/v3.5/migrator.py
+wget https://raw.githubusercontent.com/anonymousik.is-a.dev/PADO-KALIBRATOR/v3.5/migrator.py
 
 # Run migration
 python3 migrator.py /path/to/your/project
@@ -65,8 +65,8 @@ The migrator will:
 
 ```bash
 # Clone repository
-git clone https://github.com/dualshock-tools/dualshock-tools.github.io.git
-cd dualshock-tools.github.io
+git clone https://github.com/anonymousik/PADO-KALIBRATOR/v3.5/migrator.py
+cd PADO-KALIBRATOR
 
 # Install dependencies
 npm install
