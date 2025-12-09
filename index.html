@@ -1,344 +1,810 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DualShock Calibration GUI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DualShock Tools v3.5 - Enhanced UI</title>
+    <meta name="description" content="Professional calibration tool for PlayStation controllers">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f3460">
+    
+    <style>
+        :root {
+            --primary: #0f3460;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --success: #00d9ff;
+            --warning: #ffaa00;
+            --danger: #ff0000;
+            --bg-dark: #1a1a2e;
+            --text: #ffffff;
+            --text-muted: #b0b0b0;
+        }
 
-<link id="bootstrap-css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.6.0/css/fontawesome.min.css"
-      integrity="sha384-NvKbDTEnL+A8F/AA5Tc5kmMLSJHUO868P+lDtTpJIeQdGYaUIuLr4lVGOEA1OcMy"
-      crossorigin="anonymous">
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--secondary) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.6.0/css/all.min.css"
-      integrity="sha384-h/hnnw1Bi4nbpD6kE7nYfCXzovi622sY5WBxww8ARKwpdLj5kUWjRuyiXaD1U2JT"
-      crossorigin="anonymous">
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 30px;
+        }
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"
-        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-        crossorigin="anonymous"></script>
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--success) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
 
-<meta http-equiv="Permissions-Policy" content="interest-cohort=()">
-<script type="module" src="js/core.js"></script>
+        .version-badge {
+            display: inline-block;
+            background: var(--accent);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
 
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+        /* Navigation Tabs */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<meta name="apple-mobile-web-app-title" content="DS Tools" />
+        .tab-btn {
+            background: var(--secondary);
+            border: 2px solid var(--primary);
+            color: var(--text);
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 600;
+        }
 
-<!-- External CSS files -->
-<link rel="stylesheet" href="css/main.css">
-<link rel="stylesheet" href="css/finetune.css">
+        .tab-btn:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.3);
+        }
 
+        .tab-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--success);
+        }
+
+        /* Connection Status */
+        .status-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(90deg, var(--secondary) 0%, var(--primary) 100%);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connect-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            background: #ff6b81;
+            transform: scale(1.05);
+        }
+
+        .connect-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        /* Diagnostics Dashboard */
+        .diagnostics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .diagnostic-card {
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--success);
+            margin: 15px 0;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Wear Analyzer Visualization */
+        .wear-visual {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .stick-canvas {
+            width: 100%;
+            height: 400px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+        }
+
+        .wear-status {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        .wear-badge {
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .wear-badge.excellent { background: #00ff00; color: #000; }
+        .wear-badge.good { background: #90ee90; color: #000; }
+        .wear-badge.warning { background: #ffaa00; color: #000; }
+        .wear-badge.critical { background: #ff0000; color: #fff; }
+
+        /* Profile Manager */
+        .profile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .profile-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .profile-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .profile-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: #000; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        .btn-small:hover {
+            transform: scale(1.05);
+        }
+
+        /* Calibration Visualization */
+        .calibration-visual {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .stick-visual {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            background: radial-gradient(circle, rgba(15, 52, 96, 0.5) 0%, rgba(26, 26, 46, 0.8) 100%);
+            border-radius: 50%;
+            border: 3px solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stick-pointer {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.05s ease;
+            box-shadow: 0 0 20px var(--accent);
+        }
+
+        .crosshair {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .crosshair::before,
+        .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            transform: translateY(-50%);
+        }
+
+        .crosshair::after {
+            left: 50%;
+            top: 0;
+            width: 1px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--accent) 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary);
+            border-left: 4px solid var(--success);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification.error {
+            border-left-color: var(--danger);
+        }
+
+        .notification.warning {
+            border-left-color: var(--warning);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .tab-btn {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+
+            .calibration-visual {
+                grid-template-columns: 1fr;
+            }
+
+            .diagnostics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-  <nav class="navbar bg-body-tertiary navbar-expand-md bg-body-tertiary">
-    <div class="container-fluid">
-      <a class="navbar-brand ds-i18n" href="https://dualshock-tools.github.io">DualShock Calibration GUI</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse container-fluid justify-content-end" id="navbarNavDropdown">
-
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link ds-i18n" href="#" onclick="show_faq_modal();">Frequently Asked Questions</a>
-          </li>
-          <li class="nav-item dropdown" id="navbarNavAltMarkup">
-            <a class="nav-link dropdown-toggle" id="langMenuButton" role="button" href="#" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
-              <svg class="bi text-secondary" width="1.5em" height="1.5em" ><use xlink:href="#lang"/></svg>&nbsp;<span id="curLang">English</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="langMenuButton"  id="availLangs">
-            </ul>
-          </li>
-        </ul>
-      </div>
-
-    </div>
-  </nav>
-
-  <div class="container p-2">
-
-    <div id="missinghid" style="display: none;">
-      <p class="ds-i18n">Unsupported browser. Please use a web browser with WebHID support (e.g. Chrome).</p>
-    </div>
-
-    <div id="offlinebar" class="vstack p-2" style="display: none;">
-      <p class="ds-i18n">Please connect a DualShock 4, a DualSense, DualSense Edge or VR2 controller to your computer and press Connect.</p>
-      <button id="btnconnect" type="button" class="btn btn-outline-primary" onclick="connect()">
-        <span class="spinner-border spinner-border-sm" style="display: none;" id="connectspinner" aria-hidden="true"></span>
-        <span class="ds-i18n">Connect</span>
-      </button>
-      <br>
-    </div>
-
-    <div id="onlinebar" class="vstack p-2" style="display: none;">
-      <div class="row">
-        <div class="col-sm-9 hstack">
-          <p><b class="ds-i18n">Connected to:</b></p>&nbsp;<p id="devname"></p>
-        </div>
-        <div class="col-sm-3">
-          <p id="d-bat" style="text-align: right;"></p>
-        </div>
-      </div>
-      <button type="button" class="btn btn-outline-secondary ds-i18n" onclick="disconnect()">Disconnect</button><br>
-    </div>
-
-    <div id="mainmenu" class="container" style="display: none;">
-      <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="controller-tab" data-bs-toggle="tab" data-bs-target="#controller-content" type="button" role="tab" aria-controls="controller-content" aria-selected="true">
-            <i class="fas fa-gamepad"></i>&nbsp;&nbsp;<span class="ds-i18n">Calibration</span>
-          </button>
-        </li>
-        <!-- <li class="nav-item" role="presentation">
-          <button class="nav-link" id="tests-tab" data-bs-toggle="tab" data-bs-target="#tests-content" type="button" role="tab" aria-controls="tests-content" aria-selected="false">
-            <i class="fas fa-vial"></i>&nbsp;&nbsp;<span class="ds-i18n">Tests</span>
-          </button>
-        </li> -->
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button" role="tab" aria-controls="info-content" aria-selected="false">
-            <i class="fas fa-info-circle"></i>&nbsp;&nbsp;<span class="ds-i18n">Info</span>
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="debug-tab" data-bs-toggle="tab" data-bs-target="#debug-content" type="button" role="tab" aria-controls="debug-content" aria-selected="false">
-            <i class="fas fa-bug"></i>&nbsp;&nbsp;<span class="ds-i18n">Debug</span>
-          </button>
-        </li>
-      </ul>
-
-      <div class="tab-content" id="mainTabsContent">
-        <div class="tab-pane show active" id="controller-content" role="tabpanel" aria-labelledby="controller-tab">
-          <!-- Main page content (controller info, calibration, joystick info) -->
-          <div class="row">
-            <div class="col-md-6 col-sm-12">
-              <div class="card text-bg-light" >
-                <div class="card-header"><i class="fas fa-gamepad"></i>&nbsp;&nbsp;<span class="ds-i18n">Controller Info</span></div>
-                <dl class="row px-3 py-2" id="fwinfo"></dl>
-                <span id="infoshowall" class="pb-4 px-4 row">
-                  <button class="btn btn-outline-secondary" onclick="show_info_tab()"><i class="fas fa-plus me-1"></i> <span class="ds-i18n">Show all</span></button>
-                </span>
-              </div>
-              <br>
-
-              <div class="d-flex justify-content-end" id="quick-tests-div">
-                <button type="button" class="btn btn-outline-primary ds-btn mb-3" onclick="show_quick_test_modal()" id="quick-test-btn">
-                  <i class="fas fa-vial" id="quick-test-icon"></i>&nbsp;&nbsp;
-                  <span id="quick-test-text" class="ds-i18n">Quick Test</span>
-                </button>
-              </div>
-
-              <div class="text-center mx-3" id="controller-svg-container">
-                <!-- DualSense 5 Controller SVG loaded from template -->
-                <div id="controller-svg-placeholder"></div>
-              </div>
-            </div>
-
-            <div class="col-md-6 col-sm-12" style="min-width: 330px;">
-              <div class="vstack gap-2 p-2">
-                <button type="button" class="btn btn-primary ds-btn" onclick="calibrate_stick_centers()" id="four-step-center-calib" style="display: none;">
-                  1. <span class="ds-i18n">Calibrate stick center</span>
-                </button>
-                <button type="button" class="btn btn-primary ds-btn" onclick="auto_calibrate_stick_centers()" id="quick-center-calib" style="display: none;">
-                  1. <span class="ds-i18n">Calibrate stick center</span>
-                </button>
-                <button type="button" class="btn btn-primary ds-btn" onclick="calibrate_range()">
-                  2. <span class="ds-i18n">Calibrate stick range</span>
-                </button>
-                <button type="button" class="btn btn-primary ds-btn" onclick="ds5_finetune()" id="ds5finetune">
-                  3. <span class="ds-i18n">Finetune stick calibration</span>
-                </button>
-                <hr>
-                <button id="savechanges" type="button" class="btn btn-success ds-btn ds-i18n" onclick="flash_all_changes()" id="resetBtn">Save changes permanently</button>
-                <button type="button" class="btn btn-danger ds-btn ds-i18n" onclick="reboot_controller()" id="resetBtn">Reboot controller</button>
-
-                <div class="card text-bg-light" >
-                  <div class="card-header"><i class="fas fa-crosshairs"></i>&nbsp;&nbsp;<span class="ds-i18n">Joystick Info</span></div>
-                  <div class="vstack px-2">
-                    <center>
-                      <canvas id="stickCanvas" width="300" height="150"></canvas>
-                    </center>
-                  </div>
-                  <div class="px-2">
-                    <div class="hstack">
-                      <div class="vstack" style="text-align: center;">
-                        <span>LX:</span>
-                        <pre id="lx-lbl" style="min-width: 80px;"></pre>
-                      </div>
-
-                      <div class="vstack" style="text-align: center;">
-                        <span>LY:</span>
-                        <pre id="ly-lbl" style="min-width: 80px;"></pre>
-                      </div>
-
-                      <div id="stick-item-rx" class="vstack" style="text-align: center;">
-                        <span>RX:</span>
-                        <pre id="rx-lbl" style="min-width: 80px;"></pre>
-                      </div>
-
-                      <div id="stick-item-ry" class="vstack" style="text-align: center;">
-                        <span>RY:</span>
-                        <pre id="ry-lbl" style="min-width: 80px;"></pre>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="px-2">
-                    <center>
-                      <div class="btn-group mb-3" role="group" aria-label="Display mode options">
-                        <input type="radio" class="btn-check" name="displayMode" id="normalMode" value="normal" checked>
-                        <label class="btn btn-outline-secondary btn-sm ds-i18n" for="normalMode">Normal</label>
-
-                        <input type="radio" class="btn-check" name="displayMode" id="centerZoomMode" value="centerZoom">
-                        <label class="btn btn-outline-secondary btn-sm ds-i18n" for="centerZoomMode">10x zoom</label>
-
-                        <input type="radio" class="btn-check" name="displayMode" id="checkCircularityMode" value="checkCircularity">
-                        <label class="btn btn-outline-secondary btn-sm ds-i18n" for="checkCircularityMode">Check circularity</label>
-                      </div>
-                    </center>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- <div class="tab-pane" id="tests-content" role="tabpanel" aria-labelledby="tests-tab">
-          <div class="card text-bg-light mt-3" style="min-height: 500px;">
-            <div class="card-header">
-              <i class="fas fa-vial"></i>&nbsp;&nbsp;<span class="ds-i18n">Tests</span>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-4">
-                  <div class="list-group" id="tests-list" role="tablist">
-                    <a class="list-group-item list-group-item-action active ds-i18n" id="haptic-test-tab" data-bs-toggle="list" href="#haptic-test-pane">Haptic Motors</a>
-                  </div>
-                </div>
-                <div class="col-8">
-                  <div class="bg-white border rounded-3 p-4">
-                    <div class="tab-content">
-                      <div class="tab-pane show active" id="haptic-test-pane" role="tabpanel" aria-labelledby="haptic-test-tab">
-                        <h5 class="ds-i18n">Test the Haptic Motors</h5>
-                        <p class="ds-i18n">Press L2 to test the strong (left) haptic motor</p>
-                        <p class="ds-i18n">Press R2 to test the weak (right) haptic motor</p>
-                        <p class="ds-i18n">The motor strength will match how hard you press the trigger</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> -->
-        <div class="tab-pane" id="info-content" role="tabpanel" aria-labelledby="info-tab">
-          <div class="container-fluid py-4">
-            <div class="row">
-              <div class="col-lg-12 col-xl-6 py-3">
-                <div class="card">
-                  <h5 class="card-header"><i class="fas fa-code"></i>&nbsp;&nbsp;<span class="ds-i18n">Software</span></h5>
-                  <div class="card-body">
-                    <dl class="row" id="fwinfoextra-fw"></dl>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-12 col-xl-6 py-3">
-                <div class="card">
-                  <h5 class="card-header"><i class="fas fa-microchip"></i>&nbsp;&nbsp;<span class="ds-i18n">Hardware</span></h5>
-                  <div class="card-body">
-                    <dl class="row" id="fwinfoextra-hw"></dl>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="tab-pane" id="debug-content" role="tabpanel" aria-labelledby="debug-tab">
-          <div class="container-fluid py-4">
-            <div class="row">
-              <p class="ds-i18n">Sections below are not useful, just some debug infos or manual commands</p>
-            </div>
-
-            <div class="row">
-              <div class="col-md-6 col-sm-12">
-                <div class="card text-bg-light" >
-                  <div class="card-header"><i class="fas fa-bug"></i>&nbsp;&nbsp;<span class="ds-i18n">Debug Info</span></div>
-                  <div class="vstack p-2">
-                    <div class="hstack"><p class="ds-i18n">NVS Status</p><p class="ms-auto ds-i18n" id="d-nvstatus">Unknown</p></div>
-                  </div>
-                </div>
-                <br>
-              </div>
-
-              <div class="col-md-6 col-sm-12">
-                <div class="card text-bg-light" >
-                  <div class="card-header"><i class="fas fa-skull-crossbones"></i>&nbsp;&nbsp;<span class="ds-i18n">Debug buttons</span></div>
-                  <div class="vstack gap-2 p-2">
-                    <div class="hstack gap-2">
-                      <button type="button" class="btn btn-success ds-btn ds-i18n" onclick="refresh_nvstatus()">Query NVS status</button>
-                      <button type="button" class="btn btn-primary ds-btn ds-i18n" onclick="nvsunlock()">NVS unlock</button>
-                      <button type="button" class="btn btn-primary ds-btn ds-i18n" onclick="nvslock()">NVS lock</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Alert Messages Container -->
-  <div class="container-fluid fixed-bottom " style="z-index: 1040; pointer-events: none; bottom: 70px;">
     <div class="container">
-      <div id="alert-container" class="mb-3" style="pointer-events: auto;">
-        <!-- Alert messages will be dynamically inserted here -->
-      </div>
+        <!-- Header -->
+        <div class="header">
+            <h1>🎮 DualShock Tools</h1>
+            <span class="version-badge">v3.5 Community Edition</span>
+            <p style="margin-top: 10px; color: var(--text-muted);">
+                Professional Calibration & Diagnostics for PlayStation Controllers
+            </p>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <div>
+                    <div style="font-weight: bold;">Controller Status</div>
+                    <div style="color: var(--text-muted); font-size: 0.9rem;" id="statusText">
+                        Not Connected
+                    </div>
+                </div>
+            </div>
+            <button class="connect-btn" id="connectBtn">Connect Controller</button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="calibration">🎯 Calibration</button>
+            <button class="tab-btn" data-tab="diagnostics">🔬 Diagnostics</button>
+            <button class="tab-btn" data-tab="profiles">💾 Profiles</button>
+            <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+            <button class="tab-btn" data-tab="about">ℹ️ About</button>
+        </div>
+
+        <!-- Tab: Calibration -->
+        <div class="tab-content active" id="calibration">
+            <div class="card">
+                <h2 class="card-title">Analog Stick Calibration</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">
+                    Calibrate your analog sticks to restore precision and eliminate drift.
+                </p>
+
+                <div class="calibration-visual">
+                    <div>
+                        <h3 style="text-align: center; margin-bottom: 15px;">Left Stick</h3>
+                        <div class="stick-visual">
+                            <div class="crosshair"></div>
+                            <div class="stick-pointer" id="leftPointer"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="text-align: center; margin-bottom: 15px;">Right Stick</h3>
+                        <div class="stick-visual">
+                            <div class="crosshair"></div>
+                            <div class="stick-pointer" id="rightPointer"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button class="connect-btn" id="startCalibration" disabled>
+                        Start Calibration
+                    </button>
+                    <div class="progress-container" style="display: none;" id="calibrationProgress">
+                        <div class="progress-bar" id="progressBar">0%</div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px; background: rgba(233, 69, 96, 0.1);">
+                    <h3>📝 Instructions</h3>
+                    <ol style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                        <li>Connect your controller via USB cable</li>
+                        <li>Click "Start Calibration"</li>
+                        <li>Rotate both analog sticks in full circles for 10 seconds</li>
+                        <li>Click "Save to Controller" when complete</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Diagnostics -->
+        <div class="tab-content" id="diagnostics">
+            <div class="card">
+                <h2 class="card-title">🔬 Advanced Diagnostics</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">
+                    Real-time health monitoring and wear analysis
+                </p>
+
+                <div class="diagnostics-grid">
+                    <div class="diagnostic-card">
+                        <div class="metric-label">Left Stick Health</div>
+                        <div class="metric-value" id="leftHealth">--</div>
+                        <div class="wear-badge excellent" id="leftWearBadge">Excellent</div>
+                    </div>
+
+                    <div class="diagnostic-card">
+                        <div class="metric-label">Right Stick Health</div>
+                        <div class="metric-value" id="rightHealth">--</div>
+                        <div class="wear-badge excellent" id="rightWearBadge">Excellent</div>
+                    </div>
+
+                    <div class="diagnostic-card">
+                        <div class="metric-label">Input Latency</div>
+                        <div class="metric-value" id="latencyMetric">--</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">milliseconds</div>
+                    </div>
+
+                    <div class="diagnostic-card">
+                        <div class="metric-label">Samples Collected</div>
+                        <div class="metric-value" id="samplesCount">0</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem;">data points</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="connect-btn" id="startDiagnostics" disabled>
+                        Start Diagnostics Scan
+                    </button>
+                    <button class="connect-btn" id="exportDiagnostics" disabled style="margin-left: 10px; background: var(--primary);">
+                        Export Report
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <h3 class="card-title">📊 Drift Detection</h3>
+                <canvas id="driftChart" width="800" height="300" style="width: 100%; max-width: 800px; margin: 0 auto; display: block;"></canvas>
+            </div>
+        </div>
+
+        <!-- Tab: Profiles -->
+        <div class="tab-content" id="profiles">
+            <div class="card">
+                <h2 class="card-title">💾 Profile Manager</h2>
+                <p style="color: var(--text-muted); margin-bottom: 20px;">
+                    Save, restore, and share calibration profiles
+                </p>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="connect-btn" id="createProfile" disabled>
+                        Create New Profile
+                    </button>
+                    <button class="connect-btn" id="importProfile" style="background: var(--primary);">
+                        Import from QR
+                    </button>
+                </div>
+
+                <div class="profile-list" id="profileList">
+                    <!-- Profiles will be dynamically inserted here -->
+                    <div class="profile-item">
+                        <div class="profile-info">
+                            <div class="profile-name">No profiles yet</div>
+                            <div class="profile-date">Create your first calibration profile</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px; background: rgba(0, 217, 255, 0.1);">
+                <h3>☁️ Cloud Backup</h3>
+                <p style="margin-top: 10px; color: var(--text-muted);">
+                    Enable cloud backup to sync your profiles across devices (optional, encrypted end-to-end)
+                </p>
+                <label style="display: flex; align-items: center; gap: 10px; margin-top: 15px; cursor: pointer;">
+                    <input type="checkbox" id="cloudConsent" style="width: 20px; height: 20px;">
+                    <span>Enable Cloud Backup (your data will be encrypted with your device serial)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Tab: Settings -->
+        <div class="tab-content" id="settings">
+            <div class="card">
+                <h2 class="card-title">⚙️ Settings</h2>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px;">Visualization</h3>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="showDeadZone" checked>
+                        <span>Show Dead Zone Indicators</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="showTrails" checked>
+                        <span>Show Stick Movement Trails</span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">Software Trigger Remapping (v3.0)</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 15px;">
+                        Compensate for worn trigger potentiometers
+                    </p>
+                    <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer;">
+                        <input type="checkbox" id="enableTriggerRemap">
+                        <span>Enable Software Remapping</span>
+                    </label>
+                    <div style="margin-left: 30px; margin-top: 15px;">
+                        <div style="margin-bottom: 10px;">
+                            <label>L2 Max Value: <span id="l2MaxValue">1.00</span></label>
+                            <input type="range" id="l2MaxRange" min="0.5" max="1.0" step="0.01" value="1.0" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label>R2 Max Value: <span id="r2MaxValue">1.00</span></label>
+                            <input type="range" id="r2MaxRange" min="0.5" max="1.0" step="0.01" value="1.0" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">Language / Język</h3>
+                    <select id="languageSelect" style="padding: 10px; border-radius: 5px; background: var(--secondary); color: white; border: 1px solid var(--primary); width: 200px;">
+                        <option value="en">English</option>
+                        <option value="pl">Polski</option>
+                        <option value="es">Español</option>
+                        <option value="de">Deutsch</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: About -->
+        <div class="tab-content" id="about">
+            <div class="card">
+                <h2 class="card-title">ℹ️ About DualShock Tools</h2>
+                
+                <div style="margin-top: 20px; line-height: 1.8;">
+                    <p><strong>Version:</strong> 3.5.0 Community Edition</p>
+                    <p><strong>Author:</strong> anonymousik</p>
+                    <p><strong>License:</strong> MIT</p>
+                    <p style="margin-top: 20px; color: var(--text-muted);">
+                        Professional calibration and diagnostics tool for PlayStation DualShock 4 and DualSense controllers. 
+                        Features advanced wear analysis, cloud backup, and real-time health monitoring.
+                    </p>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">✨ New in v3.5</h3>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li>Progressive Web App support</li>
+                        <li>Cloud backup with encryption</li>
+                        <li>Advanced wear analyzer</li>
+                        <li>Latency profiling</li>
+                        <li>Profile sharing via QR codes</li>
+                        <li>Enhanced ghost device filtering</li>
+                    </ul>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">🐛 Bug Fixes</h3>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li>Fixed JDM-020/055 detection (Issue #174)</li>
+                        <li>Persistent settings (Issue #125)</li>
+                        <li>DualSense ghost filter</li>
+                        <li>Timing issues on JDM-040</li>
+                    </ul>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <a href="https://github.com/dualshock-tools/dualshock-tools.github.io" 
+                       style="color: var(--success); text-decoration: none; font-weight: bold;">
+                        📦 View on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>DualShock Tools v3.5 - Community Edition by anonymousik</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                Made with ❤️ for the PlayStation community
+            </p>
+        </div>
     </div>
-  </div>
 
-  <!-- Fixed Footer -->
-  <footer class="fixed-bottom bg-body-tertiary border-top">
-    <div class="container">
-      <div class="d-flex flex-column flex-sm-row justify-content-between py-3" id="footbody">
-        <p class="mb-0"><a target="_blank" href="https://github.com/dualshock-tools/dualshock-tools.github.io/commits/main/"><span class="ds-i18n">Version</span> 2.21</a> (2025-12-06) - <a href="#" class="ds-i18n" onclick="show_donate_modal();">Support this project</a>&nbsp;<span id="authorMsg"></span></p>
+    <!-- Scripts -->
+    <script>
+        // Tab Navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active from all
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active to clicked
+                btn.classList.add('active');
+                const tabId = btn.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
 
-        <ul class="list-unstyled d-flex mb-0">
-          <li class="ms-3"><a class="link-body-emphasis" href="mailto:ds4@the.al" target="_blank"><svg class="bi" width="24" height="24"><use xlink:href="#mail"/></svg></a></li>
-          <li class="ms-3"><a class="link-body-emphasis" href="https://discord.gg/w2P7Rrs2Yp" target="_blank"><svg class="bi" width="24" height="24"><use xlink:href="#discord"/></svg></a></li>
-          <li class="ms-3"><a class="link-body-emphasis" href="https://github.com/dualshock-tools/" target="_blank"><svg class="bi" width="24" height="24"><use xlink:href="#github"/></svg></a></li>
-        </ul>
-      </div>
-    </div>
-  </footer>
+        // PWA Installation
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install notification
+            showNotification('💡 Install this app for offline access!', 'info');
+        });
 
+        // Notification System
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Settings - Trigger Remapping
+        document.getElementById('l2MaxRange').addEventListener('input', (e) => {
+            document.getElementById('l2MaxValue').textContent = e.target.value;
+        });
+
+        document.getElementById('r2MaxRange').addEventListener('input', (e) => {
+            document.getElementById('r2MaxValue').textContent = e.target.value;
+        });
+
+        // Cloud Consent
+        document.getElementById('cloudConsent').addEventListener('change', (e) => {
+            localStorage.setItem('dst_cloud_consent', e.target.checked);
+            showNotification(
+                e.target.checked ? 'Cloud backup enabled' : 'Cloud backup disabled',
+                e.target.checked ? 'success' : 'warning'
+            );
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load settings
+            const cloudConsent = localStorage.getItem('dst_cloud_consent');
+            if (cloudConsent) {
+                document.getElementById('cloudConsent').checked = cloudConsent === 'true';
+            }
+
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(() => console.log('Service Worker registered'))
+                    .catch(err => console.error('SW registration failed:', err));
+            }
+
+            console.log('%c🎮 DualShock Tools v3.5 Ready', 'color: #00d9ff; font-size: 20px; font-weight: bold;');
+        });
+    </script>
 </body>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FSXPMDXLLS"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-FSXPMDXLLS');
-
-  // The gboot() function is now auto-called when the core.js module loads
-  // No manual initialization needed here
-</script>
 </html>
