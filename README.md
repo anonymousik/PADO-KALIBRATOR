@@ -35,6 +35,632 @@ Professional calibration, diagnostics, and health monitoring tool for PlayStatio
 - **Auto-Updates**: Background updates when new version available
 - **Cross-Platform**: Works on desktop and mobile
 
+# 🔄 DualShock Tools - Auto-Update System Documentation
+
+## 📋 Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [Setup Guide](#setup-guide)
+3. [Release Workflow](#release-workflow)
+4. [Security Best Practices](#security-best-practices)
+5. [CDN Deployment](#cdn-deployment)
+6. [Monitoring & Analytics](#monitoring--analytics)
+7. [Troubleshooting](#troubleshooting)
+8. [API Reference](#api-reference)
+
+---
+
+## 🏗️ Architecture Overview
+
+### System Components
+
+```
+┌─────────────────┐
+│  Client App     │
+│  (Frontend)     │
+└────────┬────────┘
+         │
+         │ HTTPS
+         ↓
+┌─────────────────┐      ┌─────────────────┐
+│  Update API     │◄────►│  CDN (S3/R2)    │
+│  (Backend)      │      │  File Storage   │
+└────────┬────────┘      └─────────────────┘
+         │
+         │
+         ↓
+┌─────────────────┐
+│  Analytics      │
+│  Database       │
+└─────────────────┘
+```
+
+### Key Features
+
+✅ **Semantic Versioning** - Proper version management
+✅ **Delta Updates** - Only download changed files
+✅ **Integrity Verification** - SHA-256 checksums
+✅ **Digital Signatures** - RSA-2048 manifest signing
+✅ **Automatic Rollback** - Safe recovery on failure
+✅ **Multi-Channel** - Stable, Beta, Dev releases
+✅ **Background Updates** - Non-intrusive experience
+✅ **Offline Queue** - Update when connection available
+
+---
+
+## 🚀 Setup Guide
+
+### Prerequisites
+
+```bash
+# Required software
+- Node.js 16+
+- Python 3.7+
+- OpenSSL
+
+# Install Python dependencies
+pip install flask flask-cors flask-limiter cryptography boto3
+```
+
+### Initial Setup
+
+#### 1. Generate RSA Key Pair
+
+```bash
+# Generate keys for manifest signing
+python update_server.py generate-keys
+
+# Keys will be created in ./keys/
+# - private_key.pem (KEEP SECRET!)
+# - public_key.pem (embed in app)
+```
+
+⚠️ **CRITICAL**: Never commit `private_key.pem` to Git!
+
+#### 2. Configure Update Manager
+
+```javascript
+// In your main app.js
+import { UpdateManager } from './update-manager.js';
+
+const updateManager = new UpdateManager({
+  currentVersion: '3.5.0',
+  manifestUrl: 'https://api.dualshock.tools/v1/updates/manifest.json',
+  channel: 'stable',
+  autoCheck: true,
+  checkInterval: 3600000, // 1 hour
+  autoDownload: true,
+  autoInstall: false
+});
+```
+
+#### 3. Embed Public Key
+
+```javascript
+// Copy public key content to app
+const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----`;
+```
+
+---
+
+## 📦 Release Workflow
+
+### Step 1: Build Your Application
+
+```bash
+# Build production version
+npm run build:prod
+
+# Output in ./dist/
+```
+
+### Step 2: Generate Update Manifest
+
+```bash
+# Generate manifest for stable release
+python update_server.py generate \
+  --version 3.5.1 \
+  --channel stable \
+  --build-dir dist
+
+# This creates: manifests/manifest_stable.json
+```
+
+**Manifest Structure:**
+
+```json
+{
+  "version": "3.5.1",
+  "releaseDate": "2024-12-11T10:00:00Z",
+  "channel": "stable",
+  "minVersion": "3.0.0",
+  "breaking": false,
+  "changelog": {
+    "en": "Bug fixes and performance improvements",
+    "pl": "Poprawki błędów i ulepszenia wydajności"
+  },
+  "files": [
+    {
+      "path": "js/app.bundle.js",
+      "hash": "sha256-abc123...",
+      "size": 245678,
+      "url": "https://cdn.dualshock.tools/v3.5.1/js/app.bundle.js",
+      "critical": true,
+      "mimeType": "application/javascript"
+    }
+  ],
+  "totalSize": 2456789,
+  "fileCount": 15,
+  "signature": "BASE64_RSA_SIGNATURE"
+}
+```
+
+### Step 3: Deploy to CDN
+
+```bash
+# Deploy to AWS S3
+python update_server.py deploy \
+  --target s3 \
+  --manifest manifests/manifest_stable.json \
+  --build-dir dist
+
+# Or deploy to Cloudflare R2
+python update_server.py deploy \
+  --target cloudflare \
+  --manifest manifests/manifest_stable.json
+```
+
+### Step 4: Start Update API Server
+
+```bash
+# Start production server
+python update_server.py serve --port 8000 --host 0.0.0.0
+
+# Or use production WSGI server
+gunicorn -w 4 -b 0.0.0.0:8000 update_server:app
+```
+
+### Step 5: Test Update Flow
+
+```bash
+# Test from client
+curl https://api.dualshock.tools/v1/updates/manifest.json?channel=stable
+
+# Should return manifest JSON
+```
+
+---
+
+## 🔐 Security Best Practices
+
+### 1. Key Management
+
+```bash
+# Store private key securely
+# - Use environment variables in production
+# - Never commit to version control
+# - Rotate keys annually
+
+# Example: AWS Secrets Manager
+aws secretsmanager create-secret \
+  --name dst/update-signing-key \
+  --secret-string file://keys/private_key.pem
+```
+
+### 2. Manifest Signing
+
+```python
+# Server-side signing (automatic)
+signature = sign_manifest(manifest_data, private_key)
+
+# Client-side verification (automatic)
+is_valid = verify_signature(manifest, public_key, signature)
+if not is_valid:
+    raise SecurityError("Invalid manifest signature!")
+```
+
+### 3. HTTPS Only
+
+```nginx
+# nginx configuration
+server {
+    listen 443 ssl http2;
+    server_name api.dualshock.tools;
+    
+    ssl_certificate /etc/ssl/certs/api.dualshock.tools.crt;
+    ssl_certificate_key /etc/ssl/private/api.dualshock.tools.key;
+    
+    # Strong SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    location /v1/updates/ {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 4. Rate Limiting
+
+```python
+# Already configured in update_server.py
+@limiter.limit("30 per minute")
+def get_manifest():
+    # API endpoint protected
+    pass
+```
+
+### 5. Integrity Verification
+
+```javascript
+// Client automatically verifies every file
+const fileData = await downloadFile(url);
+const actualHash = await calculateSHA256(fileData);
+
+if (actualHash !== expectedHash) {
+    throw new Error('File integrity check failed!');
+}
+```
+
+---
+
+## ☁️ CDN Deployment
+
+### AWS S3 + CloudFront
+
+#### Setup S3 Bucket
+
+```bash
+# Create S3 bucket
+aws s3 mb s3://dualshock-tools-updates
+
+# Enable versioning
+aws s3api put-bucket-versioning \
+  --bucket dualshock-tools-updates \
+  --versioning-configuration Status=Enabled
+
+# Set CORS policy
+aws s3api put-bucket-cors \
+  --bucket dualshock-tools-updates \
+  --cors-configuration file://cors.json
+```
+
+**cors.json:**
+
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://dualshock.tools"],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}
+```
+
+#### Setup CloudFront Distribution
+
+```bash
+# Create distribution
+aws cloudfront create-distribution \
+  --origin-domain-name dualshock-tools-updates.s3.amazonaws.com \
+  --default-root-object index.html
+```
+
+#### Deploy Files
+
+```bash
+# Upload with correct cache headers
+aws s3 sync dist/ s3://dualshock-tools-updates/v3.5.1/ \
+  --cache-control "public, max-age=31536000" \
+  --exclude "*.html" \
+  --exclude "manifest.json"
+
+# Upload manifest with short cache
+aws s3 cp manifests/manifest_stable.json \
+  s3://dualshock-tools-updates/manifest.json \
+  --cache-control "public, max-age=300"
+```
+
+### Cloudflare R2
+
+```bash
+# Install Wrangler CLI
+npm install -g wrangler
+
+# Login to Cloudflare
+wrangler login
+
+# Create R2 bucket
+wrangler r2 bucket create dualshock-tools-updates
+
+# Upload files
+wrangler r2 object put \
+  dualshock-tools-updates/v3.5.1/js/app.bundle.js \
+  --file dist/js/app.bundle.js
+```
+
+---
+
+## 📊 Monitoring & Analytics
+
+### Update Metrics
+
+Track these key metrics:
+
+```python
+# Built into update_server.py
+class UpdateStats:
+    - total_checks: Number of update checks
+    - total_downloads: Number of downloads initiated
+    - total_installs: Number of successful installs
+    - version_distribution: Users per version
+    - channel_distribution: Users per channel
+    - failure_rate: Failed updates / total attempts
+```
+
+### Grafana Dashboard
+
+```yaml
+# Example Prometheus metrics
+dst_update_checks_total{channel="stable"} 1234
+dst_update_downloads_total{version="3.5.1"} 567
+dst_update_installs_total{version="3.5.1"} 534
+dst_update_failures_total{reason="network"} 12
+```
+
+### Error Tracking
+
+```javascript
+// Client-side error reporting
+window.addEventListener('dst:update-error', (event) => {
+    const { error, context } = event.detail;
+    
+    // Send to error tracking service
+    Sentry.captureException(error, {
+        tags: {
+            component: 'update-manager',
+            version: context.currentVersion,
+            channel: context.channel
+        }
+    });
+});
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. Signature Verification Fails
+
+```
+Error: Invalid manifest signature
+```
+
+**Solution:**
+- Ensure public key in client matches private key used for signing
+- Regenerate keys if corrupted: `python update_server.py generate-keys`
+- Check manifest wasn't modified after signing
+
+#### 2. Download Fails with CORS Error
+
+```
+Error: CORS policy: No 'Access-Control-Allow-Origin' header
+```
+
+**Solution:**
+```bash
+# Update S3 CORS policy
+aws s3api put-bucket-cors \
+  --bucket dualshock-tools-updates \
+  --cors-configuration file://cors.json
+```
+
+#### 3. Files Don't Match Hash
+
+```
+Error: Integrity check failed for js/app.bundle.js
+```
+
+**Solution:**
+- Regenerate manifest: `python update_server.py generate --version X.Y.Z`
+- Clear CDN cache
+- Verify files weren't corrupted during upload
+
+#### 4. Update Check Returns 404
+
+```
+Error: Manifest fetch failed: 404
+```
+
+**Solution:**
+- Verify manifest exists: `ls manifests/manifest_stable.json`
+- Check API server is running: `curl localhost:8000/v1/updates/health`
+- Verify DNS/routing configuration
+
+---
+
+## 📚 API Reference
+
+### Client API
+
+#### UpdateManager
+
+```javascript
+const updateManager = new UpdateManager(config);
+```
+
+**Methods:**
+
+```javascript
+// Check for updates
+await updateManager.checkForUpdates(silent = false)
+// Returns: UpdateInfo | null
+
+// Manual update trigger
+await updateManager.update()
+
+// Get current state
+const state = updateManager.getState()
+// Returns: { checking, downloading, installing, ... }
+
+// Start/stop auto-check
+updateManager.startAutoCheck()
+updateManager.stopAutoCheck()
+```
+
+**Events:**
+
+```javascript
+// Update available
+window.addEventListener('dst:update-available', (event) => {
+    const { version, changelog, size } = event.detail;
+});
+
+// Download progress
+window.addEventListener('dst:download-progress', (event) => {
+    const { progress, downloaded, total } = event.detail;
+});
+
+// Install complete
+window.addEventListener('dst:install-complete', (event) => {
+    const { version } = event.detail;
+});
+
+// Error occurred
+window.addEventListener('dst:update-error', (event) => {
+    const { error, context } = event.detail;
+});
+```
+
+### Server API
+
+#### GET /v1/updates/manifest.json
+
+Get update manifest for specific channel.
+
+**Query Parameters:**
+- `channel` (string): stable, beta, or dev
+- `current_version` (string, optional): Client's current version
+
+**Response:**
+```json
+{
+  "version": "3.5.1",
+  "releaseDate": "2024-12-11T10:00:00Z",
+  "files": [...],
+  "signature": "..."
+}
+```
+
+#### GET /v1/updates/download/:file_path
+
+Download specific update file.
+
+**Parameters:**
+- `file_path`: Relative path to file (e.g., js/app.bundle.js)
+
+**Response:** File binary data with appropriate Content-Type
+
+#### GET /v1/updates/stats
+
+Get update statistics (admin only).
+
+**Response:**
+```json
+{
+  "checks": 1234,
+  "downloads": 567,
+  "installs": 534,
+  "versions": {
+    "3.5.0": 423,
+    "3.5.1": 111
+  }
+}
+```
+
+#### GET /v1/updates/channels
+
+List available update channels.
+
+**Response:**
+```json
+{
+  "channels": [
+    {
+      "name": "stable",
+      "version": "3.5.1",
+      "releaseDate": "2024-12-11T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 🎯 Best Practices Summary
+
+### Release Checklist
+
+- [ ] Update version in package.json
+- [ ] Build production version (`npm run build:prod`)
+- [ ] Run tests (`npm test`)
+- [ ] Generate manifest (`python update_server.py generate`)
+- [ ] Review manifest file
+- [ ] Deploy to CDN (`python update_server.py deploy`)
+- [ ] Update API server manifests
+- [ ] Monitor first 100 updates
+- [ ] Announce release in changelog
+
+### Security Checklist
+
+- [ ] Private key stored securely
+- [ ] HTTPS enforced everywhere
+- [ ] Rate limiting enabled
+- [ ] CORS properly configured
+- [ ] Manifest signatures verified
+- [ ] File integrity checks enabled
+- [ ] Error tracking configured
+- [ ] Rollback tested
+
+### Performance Checklist
+
+- [ ] CDN cache headers set
+- [ ] Delta updates enabled
+- [ ] Files compressed (gzip/brotli)
+- [ ] Large files chunked
+- [ ] Background downloads
+- [ ] Bandwidth-aware scheduling
+- [ ] Progress feedback to user
+
+---
+
+## 📄 License
+
+This auto-update system is part of DualShock Tools v3.5, released under MIT License.
+
+Copyright (c) 2025
+By 🅽ɨɛʐռǟռʏ 🅽ɨӄօʍʊ Ⱥ🅽ටꈤYMටꪊSƗꀘ
+  ༽ ❗༽   ꍏꈤටꈤ༼lᕗ ༽ ❗༽ 
+
+## 🙋 Support
+
+For issues or questions:
+- GitHub Issues: https://github.com/dualshock-tools/issues
+- Email: support@dualshock.tools
+- Discussions: https://github.com/dualshock-tools/discussions
+
+---
+
+*Made with ❤️ for seamless updates*
 ---
 
 ## 🚀 Quick Start
